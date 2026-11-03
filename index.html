@@ -2293,23 +2293,25 @@ let phone = e('c-phone').value.trim() || '未填寫電話';
 let date = e('c-date').value.trim() || '未指定日期';
 let time = e('c-time').value || '17:00';
 let items = getOrderItems();
-let itemsText = items.map(it => `• ${it.name} ${it.price===0?'(已內含)':(it.isPriceEmpty ? '(尚未填寫預算)' : '$'+fmt(it.price))}${it.desc ? '\n ↳ ' + it.desc : ''}`).join('\n');
+let itemsText = items.map(it => `•${it.name} ${it.price===0?'(已內含)':(it.isPriceEmpty ? '(尚未填寫預算)' : '$'+fmt(it.price))}${it.desc ? '\n ↳ ' + it.desc : ''}`).join('\n');
 let tot = e('disp-total').textContent;
-let msg = `🌸【WUYI 門市花束預訂單】\n` +
-`----------------------------\n` +
-`• 訂購姓名：${name}\n` +
-`• 聯絡電話：${phone}\n` +
-`• 取貨日期：${date}\n` +
-`• 取貨時間：${time}\n` +
-`----------------------------\n` +
-`【預訂品項與規格明細】\n` +
-`${itemsText}\n` +
-`----------------------------\n` +
-`預估應付總額：${tot}\n` +
-`門市附贈卡片：取貨時現場書寫\n` +
-`取貨地址：台南市中西區友愛街93號\n` +
-`----------------------------\n` +
-`✅ 我已詳閱並同意梧藝IG花藝風格與訂購注意事項，請協助確認排單！謝謝！`;
+let msg = `   【WUYI門市花束預訂單】\n` +
+`－－－－－－－－－－－－－\n` +
+`•訂購姓名：${name}\n` +
+`•聯絡電話：${phone}\n` +
+`•取貨日期：${date}\n` +
+`•取貨時間：${time}\n` +
+`•取貨地址：台南市中西區友愛街93號\n` +
+`－－－－－－－－－－－－－\n` +
+`   【預訂品項與規格明細】\n` +
+`${itemsText ? itemsText + '\n' : ''}` +
+`門市附贈卡片：(沒有代寫服務喔～)\n` +
+`－－－－－－－－－－－－－\n` +
+`     預估應付總額：${tot}\n` +
+`－－－－－－－－－－－－－\n` +
+`我已詳閱並同意梧藝IG花藝風格\n` +
+`與訂購注意事項，請協助確認排單\n` +
+`謝謝`;
 return msg;
 }
 function copyOrderText() {
