@@ -749,6 +749,7 @@ border: none;
 <span id="cloudSyncStatus" class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-medium">☁️ Google 試算表已連線</span>
 </div>
 <p class="text-[11px] text-stone-500">預設開放一個月，點選後按儲存將自動同步至雲端試算表</p>
+<p class="text-[11px] text-emerald-700">手動設為可訂的日期，不受提前天數限制</p>
 </div>
 <button type="button" id="adminClosePanelBtn" class="text-stone-400 hover:text-stone-600 text-lg leading-none">&times;</button>
 </div>
@@ -1603,23 +1604,38 @@ alert("🔄 已成功恢復為預設規則，並同步重設至 Google 雲端試
 // 客戶預約日曆檢驗與視覺化渲染
 // （直接顯示可以預訂的日期，不能預訂的日期顯示灰色且無法點選）
 // ──────────────────────────────────────────────
+// 店長於店長模式手動寫入「可訂」才覆寫提前天數。
+// 未寫入的預設開放（含 isDateOpen 的週一以外預設）不算，以免提前天數規則失效。
+function isManagerExplicitOpen(dStr) {
+if (!calendarDateStatus || !Object.prototype.hasOwnProperty.call(calendarDateStatus, dStr)) return false;
+if (calendarDateStatus[dStr] === 'open') return true;
+const normalized = normalizeStatus(calendarDateStatus[dStr]);
+if (normalized !== 'open') return false;
+if (typeof getDateStatus === 'function') return getDateStatus(dStr) === 'open';
+if (typeof isDateOpen === 'function') return isDateOpen(dStr);
+return true;
+}
 function checkDateBookable(dStr) {
 let now = new Date();
 now.setHours(0, 0, 0, 0);
 let parts = dStr.split('-');
 let target = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
 target.setHours(0, 0, 0, 0);
-// 1. 過去日期不可預約
+// 1. 過去日期不可預約（店長設為可訂也不開放已過日期）
 if (target < now) {
 return { ok: false, reason: '已過' };
 }
 // 2. 提前天數限制（韓系透包開放當天/隔天，其他款式需提前2天）
+//    店長手動設為可訂（calendarDateStatus === 'open'）時略過此限制
 let isClear = (fl.style === '透包');
 let minDaysAhead = isClear ? 0 : 2;
+let managerOpen = isManagerExplicitOpen(dStr);
+if (!managerOpen) {
 let minDate = new Date(now);
 minDate.setDate(now.getDate() + minDaysAhead);
 if (target < minDate) {
 return { ok: false, reason: (minDaysAhead > 0 ? '需提早' : '不可訂') };
+}
 }
 // 3. 限 50 天內
 let maxDate = new Date(now);
@@ -1730,6 +1746,7 @@ tipEl.textContent = '(需提前2天預訂，限50天內)';
 }
 }
 // 如果目前選擇的日期無效或尚未選擇，自動尋找最近一個可以預約的日期
+// findNextAvailableDate 會一併納入「今天～提前天數門檻前」且店長手動設為可訂的日期
 let curVal = dtInput ? dtInput.value : '';
 if(!curVal || !checkDateBookable(curVal).ok) {
 let nextAvail = findNextAvailableDate(minDate, maxDate);
@@ -1739,7 +1756,21 @@ validateSelectedDate(dtInput ? dtInput.value : '');
 renderCustomerCalendar();
 }
 function findNextAvailableDate(startDate, endDate) {
-let cur = new Date(startDate.getTime());
+let now = new Date();
+now.setHours(0, 0, 0, 0);
+let floor = new Date(startDate.getTime());
+floor.setHours(0, 0, 0, 0);
+// 提前天數門檻（startDate）之前：僅店長手動設為可訂的日期可成為下一個可訂日。
+// 搜尋不早於今天，過去日期維持不可訂。
+if (floor > now) {
+let early = new Date(now.getTime());
+while (early < floor && early <= endDate) {
+let s = toDateStr(early);
+if (isManagerExplicitOpen(s) && checkDateBookable(s).ok) return s;
+early.setDate(early.getDate() + 1);
+}
+}
+let cur = floor > now ? new Date(floor.getTime()) : new Date(Math.max(floor.getTime(), now.getTime()));
 while(cur <= endDate) {
 let s = toDateStr(cur);
 if(checkDateBookable(s).ok) return s;
