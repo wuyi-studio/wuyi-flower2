@@ -866,7 +866,7 @@ border: none;
 <span style="color:#d97706">六</span>
 </div>
 <div id="custCalendarGrid" style="display:grid;grid-template-columns:repeat(7, 1fr);gap:5px;text-align:center;user-select:none"></div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0;font-size:11px;color:#64748b;flex-wrap:wrap;gap:6px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0;font-size:11px;color:#64748b;flex-wrap:gap:6px">
 <div style="display:flex;gap:8px;align-items:center">
 <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:3px;display:inline-block"></span>可預訂</span>
 <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:#ff4757;border-radius:3px;display:inline-block"></span>已選中</span>
@@ -1626,7 +1626,7 @@ if (target < now) {
 return { ok: false, reason: '已過' };
 }
 // 2. 提前天數限制（韓系透包開放當天/隔天，其他款式需提前2天）
-//    店長手動設為可訂（calendarDateStatus === 'open'）時略過此限制
+// 店長手動設為可訂（calendarDateStatus === 'open'）時略過此限制
 let isClear = (fl.style === '透包');
 let minDaysAhead = isClear ? 0 : 2;
 let managerOpen = isManagerExplicitOpen(dStr);
@@ -2253,7 +2253,7 @@ if(hasWrap && fl.wrap) {
 sp.push('包裝紙:' + fl.wrap);
 }
 let isCustom = (fl.style === '精緻' || fl.style === '透包');
-let itemName = fl.style + (fl.style.includes('花束') ? '' : '花束');
+let itemName = fl.style === '精緻' ? '精緻包裝花束' : (fl.style + (fl.style.includes('花束') ? '' : '花束'));
 let isPriceEmpty = isCustom && (!fl.base || fl.base <= 0);
 items.push({
 name: itemName,
@@ -2287,17 +2287,23 @@ function updatePreview() {
 let items = getOrderItems();
 let listEl = e('sum-details');
 let countEl = e('sum-count-badge');
-let html = items.map(it => `
+let html = items.map(it => {
+let displayName = it.name;
+if(it.name === '透包花束' && fl.base > 0) {
+displayName = `透包花束 $${fmt(fl.base)}`;
+}
+return `
 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
 <div>
-<span style="font-weight:700;color:#1e293b">${it.name}</span>
+<span style="font-weight:700;color:#1e293b">${displayName}</span>
 ${it.desc ? `<div style="font-size:11px;color:#64748b;margin-left:4px">↳ ${it.desc}</div>` : ''}
 </div>
 <span style="font-weight:800;color:${it.isPriceEmpty ? '#e11d48' : '#334155'};white-space:nowrap">
 ${it.isPriceEmpty ? '⚠️ 請輸入預算' : (it.price === 0 ? '內含' : '$' + fmt(it.price))}
 </span>
 </div>
-`).join('');
+`;
+}).join('');
 listEl.innerHTML = html;
 if(countEl) countEl.textContent = `共 ${items.length} 項內容`;
 }
@@ -2324,7 +2330,21 @@ let phone = e('c-phone').value.trim() || '未填寫電話';
 let date = e('c-date').value.trim() || '未指定日期';
 let time = e('c-time').value || '17:00';
 let items = getOrderItems();
-let itemsText = items.map(it => `•${it.name} ${it.price===0?'(已內含)':(it.isPriceEmpty ? '(尚未填寫預算)' : '$'+fmt(it.price))}${it.desc ? '\n ↳ ' + it.desc : ''}`).join('\n');
+let itemsText = items.map(it => {
+if(it.name === '透包花束') {
+let pStr = fl.base > 0 ? ` $${fmt(fl.base)}` : ' (尚未填寫預算)';
+return `•透包花束${pStr}${it.desc ? '\n ↳ ' + it.desc : ''}`;
+}
+let pricePart = '';
+if(it.isPriceEmpty) {
+pricePart = ' (尚未填寫預算)';
+} else if(it.price === 0) {
+pricePart = ' (已內含)';
+} else {
+pricePart = ` $${fmt(it.price)}`;
+}
+return `•${it.name}${pricePart}${it.desc ? '\n ↳ ' + it.desc : ''}`;
+}).join('\n');
 let tot = e('disp-total').textContent;
 let msg = `   【WUYI門市花束預訂單】\n` +
 `－－－－－－－－－－－－－\n` +
